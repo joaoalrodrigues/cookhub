@@ -1,0 +1,8 @@
+{
+  "name": "CookHub",
+  "description": "Plataforma colaborativa para amantes de culinária e panificação. Registre suas fornadas e compartilhe seu progresso.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
