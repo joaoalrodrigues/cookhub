@@ -50,9 +50,10 @@ const MOCK_COMMUNITY: CommunityRecipe[] = [
 
 interface DashboardProps {
   onCreateRecipe: () => void;
+  onOpenRecipe?: (id: string) => void;
 }
 
-export default function Dashboard({ onCreateRecipe }: DashboardProps) {
+export default function Dashboard({ onCreateRecipe, onOpenRecipe }: DashboardProps) {
   return (
     <div className="space-y-12 pb-20">
       {/* Hero / CTA Section */}
@@ -61,7 +62,7 @@ export default function Dashboard({ onCreateRecipe }: DashboardProps) {
         animate={{ opacity: 1, scale: 1 }}
         className="relative overflow-hidden bg-[#5A5A40] rounded-[40px] p-10 md:p-16 text-white text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-8 transition-all"
       >
-        <div className="relative z-10 space-y-6 max-w-lg">
+        <div className="relative z-10 space-y-6 max-w-lg mx-auto md:mx-0">
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -74,7 +75,7 @@ export default function Dashboard({ onCreateRecipe }: DashboardProps) {
           <p className="text-white/70 text-lg italic">Cada receita é um rascunho de uma lembrança perfeita.</p>
           <button 
             onClick={onCreateRecipe}
-            className="bg-white text-[#5A5A40] px-8 py-4 rounded-2xl flex items-center gap-3 font-sans font-bold uppercase tracking-widest hover:bg-[#FDFCF8] hover:scale-105 transition-all shadow-xl shadow-black/20"
+            className="w-full sm:w-auto bg-white text-[#5A5A40] px-8 py-4 rounded-2xl flex items-center justify-center gap-3 font-sans font-bold uppercase tracking-widest hover:bg-[#FDFCF8] hover:scale-105 transition-all shadow-xl shadow-black/20 mx-auto md:mx-0"
           >
             <Plus size={20} /> Criar Nova Receita
           </button>
@@ -157,7 +158,10 @@ export default function Dashboard({ onCreateRecipe }: DashboardProps) {
                   <span className="flex items-center gap-1.5"><DollarSign size={12} /> {recipe.cost}</span>
                 </div>
 
-                <button className="w-full mt-4 py-3 rounded-xl border border-[#E2D6C0] text-[#5A5A40] text-[10px] uppercase font-black tracking-[0.2em] group-hover:bg-[#5A5A40] group-hover:text-white group-hover:border-transparent transition-all">
+                <button 
+                  onClick={() => onOpenRecipe && onOpenRecipe(recipe.id)}
+                  className="w-full mt-4 py-3 rounded-xl border border-[#E2D6C0] text-[#5A5A40] text-[10px] uppercase font-black tracking-[0.2em] group-hover:bg-[#5A5A40] group-hover:text-white group-hover:border-transparent transition-all"
+                >
                   Ver Receita
                 </button>
               </div>
@@ -174,9 +178,9 @@ export default function Dashboard({ onCreateRecipe }: DashboardProps) {
           { icon: Trophy, label: "Desafios", color: "text-purple-500" },
           { icon: DollarSign, label: "Calculadora de Custos", color: "text-green-500" }
         ].map((item, idx) => (
-          <button key={idx} className="bg-[#FDFCF8] border border-[#E2D6C0] p-6 rounded-[24px] flex flex-col items-center gap-3 hover:border-[#5A5A40] hover:bg-white transition-all group">
+          <button key={idx} className="bg-[#FDFCF8] border border-[#E2D6C0] p-4 sm:p-6 rounded-[24px] flex flex-col items-center gap-3 hover:border-[#5A5A40] hover:bg-white transition-all group">
             <item.icon size={24} className={`${item.color} opacity-40 group-hover:opacity-100 transition-opacity`} />
-            <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">{item.label}</span>
+            <span className="text-[10px] uppercase font-bold tracking-widest opacity-60 group-hover:opacity-100 transition-opacity text-center leading-relaxed">{item.label}</span>
           </button>
         ))}
       </section>

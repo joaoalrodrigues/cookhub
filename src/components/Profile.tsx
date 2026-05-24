@@ -36,7 +36,11 @@ const MOCK_ADAPTATIONS: ProfileRecipe[] = [
   { id: "a2", title: "Pão de Queijo Mineiro", category: "Brasileira", image_url: "https://images.unsplash.com/photo-1598143158330-482bc605634b?w=600&h=400&fit=crop" },
 ];
 
-export default function Profile() {
+interface ProfileProps {
+  onOpenRecipe?: (id: string) => void;
+}
+
+export default function Profile({ onOpenRecipe }: ProfileProps) {
   const [activeTab, setActiveTab] = useState<'creations' | 'adaptations'>('creations');
 
   const recipes = activeTab === 'creations' ? MOCK_CREATIONS : MOCK_ADAPTATIONS;
@@ -104,10 +108,10 @@ export default function Profile() {
 
       {/* Navigation Tabs */}
       <div className="space-y-8">
-        <div className="flex border-b border-[#E2D6C0] gap-12 overflow-x-auto no-scrollbar">
+        <div className="flex border-b border-[#E2D6C0] gap-8 md:gap-12 overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('creations')}
-            className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+            className={`pb-4 text-xs md:text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap shrink-0 ${
               activeTab === 'creations' ? 'text-[#5A5A40]' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
@@ -118,7 +122,7 @@ export default function Profile() {
           </button>
           <button 
             onClick={() => setActiveTab('adaptations')}
-            className={`pb-4 text-sm font-bold uppercase tracking-widest transition-all relative ${
+            className={`pb-4 text-xs md:text-sm font-bold uppercase tracking-widest transition-all relative whitespace-nowrap shrink-0 ${
               activeTab === 'adaptations' ? 'text-[#5A5A40]' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
@@ -161,7 +165,10 @@ export default function Profile() {
                         <span className="flex items-center gap-1"><Award size={14} /> 4.9</span>
                         <span className="flex items-center gap-1"><ChefHat size={14} /> Médio</span>
                     </div>
-                    <button className="w-10 h-10 rounded-full bg-[#E2D6C0]/30 flex items-center justify-center hover:bg-[#5A5A40] hover:text-white transition-all transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100">
+                    <button 
+                      onClick={() => onOpenRecipe && onOpenRecipe(recipe.id)}
+                      className="w-10 h-10 rounded-full bg-[#E2D6C0]/30 flex items-center justify-center hover:bg-[#5A5A40] hover:text-white transition-all transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                    >
                       <ChevronRight size={20} />
                     </button>
                   </div>

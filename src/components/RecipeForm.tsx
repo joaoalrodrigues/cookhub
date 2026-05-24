@@ -126,7 +126,7 @@ export default function RecipeForm() {
         </div>
 
         {/* Rendimento, Esforço e Custo */}
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Rendimento */}
           <div className="space-y-3">
             <label className="text-xs uppercase tracking-widest font-bold opacity-60 flex items-center gap-2">
@@ -136,14 +136,14 @@ export default function RecipeForm() {
               <input 
                 type="number"
                 min="1"
-                className="w-16 bg-[#FDFCF8] border border-[#E2D6C0] rounded-xl px-2 py-2 focus:outline-none"
+                className="w-16 bg-[#FDFCF8] border border-[#E2D6C0] rounded-xl px-2 py-2 focus:outline-none transition-all font-sans"
                 value={formData.yield_quantity}
                 onChange={(e) => setFormData({ ...formData, yield_quantity: parseInt(e.target.value) || 0 })}
               />
               <input 
                 type="text"
                 placeholder="porções"
-                className="flex-1 bg-[#FDFCF8] border border-[#E2D6C0] rounded-xl px-3 py-2 focus:outline-none"
+                className="flex-1 w-16 bg-[#FDFCF8] border border-[#E2D6C0] rounded-xl px-3 py-2 focus:outline-none transition-all font-sans"
                 value={formData.yield_unit}
                 onChange={(e) => setFormData({ ...formData, yield_unit: e.target.value })}
               />
@@ -161,10 +161,10 @@ export default function RecipeForm() {
                   key={level}
                   type="button"
                   onClick={() => setFormData({ ...formData, effort_level: level })}
-                  className={`flex-1 py-2 rounded-lg text-[10px] uppercase tracking-tighter font-bold transition-all ${
+                  className={`flex-1 min-w-0 px-1 py-2 rounded-lg text-[10px] uppercase font-bold transition-all truncate ${
                     formData.effort_level === level 
                       ? 'bg-[#5A5A40] text-white shadow-sm' 
-                      : 'hover:bg-black/5'
+                      : 'hover:bg-black/5 text-[#5A5A40]/70'
                   }`}
                 >
                   {level}
@@ -184,10 +184,10 @@ export default function RecipeForm() {
                   key={c}
                   type="button"
                   onClick={() => setFormData({ ...formData, cost: c })}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
+                  className={`flex-1 min-w-0 py-2 rounded-lg text-sm font-bold transition-all ${
                     formData.cost === c 
                       ? 'bg-[#5A5A40] text-white shadow-sm' 
-                      : 'hover:bg-black/5'
+                      : 'hover:bg-black/5 text-[#5A5A40]/70'
                   }`}
                 >
                   {c}

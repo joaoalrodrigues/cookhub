@@ -52,7 +52,7 @@ const MOCK_RECIPES: CommunityRecipe[] = [
   }
 ];
 
-export default function Explore() {
+export default function Explore({ onOpenRecipe }: { onOpenRecipe?: (id: string) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<'trending' | 'recent' | 'results'>('trending');
 
@@ -90,12 +90,12 @@ export default function Explore() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-[#FDFCF8] p-1.5 rounded-2xl border border-[#E2D6C0] self-start inline-flex">
+      <div className="flex bg-[#FDFCF8] p-1.5 rounded-2xl border border-[#E2D6C0] w-full md:w-auto md:self-start overflow-x-auto no-scrollbar">
         {(['trending', 'recent', 'results'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all relative ${
+            className={`px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-all relative shrink-0 whitespace-nowrap ${
               activeTab === tab 
                 ? 'bg-[#5A5A40] text-white shadow-md' 
                 : 'text-[#5A5A40]/40 hover:text-[#5A5A40]'
@@ -120,7 +120,8 @@ export default function Explore() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.4, delay: idx * 0.05 }}
-                className="group bg-white rounded-[32px] overflow-hidden border border-[#E2D6C0] hover:shadow-xl transition-all"
+                onClick={() => onOpenRecipe && onOpenRecipe(recipe.id)}
+                className="group bg-white rounded-[32px] overflow-hidden border border-[#E2D6C0] hover:shadow-xl transition-all cursor-pointer"
               >
                 <div className="aspect-[16/10] overflow-hidden relative">
                   <img src={recipe.image_url} alt={recipe.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
