@@ -28,14 +28,64 @@ export default function RecipeForm() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const totalTime = formData.prep_time + formData.cook_time;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Objeto de Receita Estruturado:", formData);
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setSubmitting(true);
+    setError(null);
+    
+    try {
+       // Convert markup strings to simple arrays to comply with our backend expectations 
+       // (Alternatively we can store as text but our schema implies array of lines)
+       const ingredientsArray = formData.ingredients.split('\n').filter(i => i.trim() !== '');
+       const instructionsArray = formData.instructions.split('\n').filter(i => i.trim() !== '');
+       
+       const response = await fetch("/api/v1/recipes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: formData.title,
+            description: "", // could add description field later
+            total_time: totalTime,
+            effort_level: formData.effort_level,
+            cost: formData.cost,
+            yield: `${formData.yield_quantity} ${formData.yield_unit}`,
+            image_url: "", // mock
+            ingredients: ingredientsArray,
+            instructions: instructionsArray,
+          })
+       });
+
+       if (!response.ok) {
+           throw new Error("Falha ao salvar receita.");
+       }
+
+       const newRecipe = await response.json();
+       console.log("Receita Criada:", newRecipe);
+       
+       setSubmitted(true);
+       setFormData({
+         title: "",
+         ingredients: "",
+         instructions: "",
+         prep_time: 0,
+         cook_time: 0,
+         yield_quantity: 1,
+         yield_unit: "porções",
+         effort_level: "Médio",
+         cost: "$$"
+       });
+       setTimeout(() => setSubmitted(false), 3000);
+    } catch (err) {
+       console.error(err);
+       setError("Ocorreu um erro ao salvar sua receita. Tente novamente.");
+    } finally {
+       setSubmitting(false);
+    }
   };
 
   return (
@@ -197,15 +247,30 @@ export default function RecipeForm() {
           </div>
         </div>
 
+        {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-sm font-medium">
+               {error}
+            </div>
+        )}
+
         {/* Botão de Envio */}
         <button
           type="submit"
-          className="w-full bg-[#5A5A40] hover:bg-[#4A4A30] text-white py-4 rounded-xl flex items-center justify-center gap-3 font-sans font-bold uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]"
+          disabled={submitting}
+          className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-sans font-bold uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+            submitted 
+              ? 'bg-green-600 hover:bg-green-700 text-white' 
+              : submitting 
+                 ? 'bg-[#5A5A40]/70 text-white cursor-not-allowed'
+                 : 'bg-[#5A5A40] hover:bg-[#4A4A30] text-white'
+          }`}
         >
           {submitted ? (
              <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="flex items-center gap-2">
                <CheckCircle2 size={20} /> Receita Salva!
              </motion.div>
+          ) : submitting ? (
+             <>Salvando...</>
           ) : (
             <>
               <Save size={20} /> Salvar Receita

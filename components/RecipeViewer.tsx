@@ -143,8 +143,11 @@ const MOCK_RECIPE_DETAILS = {
 
 interface Note {
   id: string;
-  text: string;
-  date: string;
+  user_id?: string;
+  content?: string;
+  text?: string;
+  date?: string;
+  created_at?: string;
 }
 
 type NotesRecord = Record<string, Note[]>;
@@ -155,28 +158,83 @@ interface RecipeViewerProps {
 }
 
 export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
-  const recipe = (MOCK_RECIPE_DETAILS as any)[recipeId] || MOCK_RECIPE_DETAILS["e1"];
-  
+  const [recipe, setRecipe] = useState<any>(null);
   const [notes, setNotes] = useState<NotesRecord>({});
   const [activeInput, setActiveInput] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submittingNote, setSubmittingNote] = useState(false);
 
-  const handleAddNote = (key: string) => {
-    if (!inputText.trim()) {
-      setActiveInput(null);
-      return;
+  React.useEffect(() => {
+    async function fetchRecipe() {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/v1/recipes/${recipeId}`);
+        if (!res.ok) {
+           // fallback to mock if the real one fails (for compatibility during transition)
+           const mock = (MOCK_RECIPE_DETAILS as any)[recipeId];
+           if (mock) {
+              setRecipe(mock);
+              setLoading(false);
+              return;
+           }
+           throw new Error("Receita não encontrada.");
+        }
+        const data = await res.json();
+        setRecipe(data);
+        if (data.notes) {
+           setNotes(data.notes);
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Ocorreu um erro ao buscar a receita.");
+      } finally {
+        setLoading(false);
+      }
     }
-    const newNote: Note = {
-      id: Math.random().toString(36).substr(2, 9),
-      text: inputText.trim(),
-      date: new Date().toLocaleDateString('pt-BR')
-    };
-    setNotes(prev => ({
-      ...prev,
-      [key]: [...(prev[key] || []), newNote]
-    }));
-    setInputText("");
-    setActiveInput(null);
+    fetchRecipe();
+  }, [recipeId]);
+
+  const handleAddNote = async (key: string) => {
+    if (!inputText.trim()) return;
+    
+    setSubmittingNote(true);
+    try {
+      const response = await fetch(`/api/v1/recipes/${recipeId}/notes`, {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+            anchor_id: key,
+            content: inputText.trim()
+         })
+      });
+
+      if (!response.ok) {
+         throw new Error("Falha ao salvar nota.");
+      }
+
+      const newNoteData = await response.json();
+      
+      const newNote: Note = {
+        id: newNoteData.id,
+        content: newNoteData.content,
+        created_at: newNoteData.created_at
+      };
+
+      setNotes(prev => ({
+        ...prev,
+        [key]: [...(prev[key] || []), newNote]
+      }));
+
+      setInputText("");
+      setActiveInput(null);
+    } catch (err) {
+       console.error("Error saving note:", err);
+       alert("Não foi possível salvar a nota. Tente novamente.");
+    } finally {
+       setSubmittingNote(false);
+    }
   };
 
   const NoteInput = ({ itemKey }: { itemKey: string }) => {
@@ -195,19 +253,22 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
           placeholder="Adicione uma nota de teste... (Ex: Ficou muito doce, tentar reduzir o açúcar em 10g)"
           className="w-full bg-[#FDFCF8] border border-[#E2D6C0] rounded-xl p-4 text-sm font-sans focus:outline-none focus:ring-2 focus:ring-[#5A5A40]/30 resize-none shadow-inner"
           rows={2}
+          disabled={submittingNote}
         />
         <div className="flex justify-end gap-3">
           <button 
             onClick={() => setActiveInput(null)} 
+            disabled={submittingNote}
             className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#5A5A40] opacity-60 hover:opacity-100 transition-opacity"
           >
             Cancelar
           </button>
           <button 
             onClick={() => handleAddNote(itemKey)} 
-            className="px-5 py-2 text-xs font-bold uppercase tracking-widest bg-[#5A5A40] text-white rounded-xl shadow-sm hover:bg-[#4A4A30] transition-colors"
+            disabled={submittingNote}
+            className={`px-5 py-2 text-xs font-bold uppercase tracking-widest text-white rounded-xl shadow-sm transition-colors ${submittingNote ? 'bg-[#5A5A40] opacity-70 cursor-not-allowed' : 'bg-[#5A5A40] hover:bg-[#4A4A30]'}`}
           >
-            Salvar Nota
+            {submittingNote ? "Salvando..." : "Salvar Nota"}
           </button>
         </div>
       </motion.div>
@@ -227,15 +288,32 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
             className="bg-[#FDFCF8] border border-[#E2D6C0] p-4 rounded-2xl rounded-tl-sm relative"
           >
             <MessageSquareQuote size={16} className="absolute top-4 left-4 text-[#5A5A40] opacity-30" />
-            <p className="text-sm text-[#2C2115] ml-8 font-serif italic text-pretty">{n.text}</p>
+            <p className="text-sm text-[#2C2115] ml-8 font-serif italic text-pretty">{n.content || n.text}</p>
             <span className="text-[10px] text-[#5A5A40] opacity-50 ml-8 block mt-2 uppercase tracking-[0.15em] font-bold font-sans">
-              {n.date}
+              {n.created_at ? new Date(n.created_at).toLocaleDateString('pt-BR') : n.date}
             </span>
           </motion.div>
         ))}
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-[#5A5A40] opacity-50 uppercase tracking-widest text-xs font-bold gap-3">
+        Carregando Receita...
+      </div>
+    );
+  }
+
+  if (error || !recipe) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-[#5A5A40] gap-4">
+        <p className="font-serif text-xl">{error || "Receita não encontrada."}</p>
+        <button onClick={onBack} className="px-6 py-2 border border-[#E2D6C0] rounded-xl text-xs uppercase font-bold tracking-widest hover:bg-[#FDFCF8] transition-colors">Voltar</button>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
