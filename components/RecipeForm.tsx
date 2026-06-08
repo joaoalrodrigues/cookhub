@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   Type, 
@@ -10,11 +10,12 @@ import {
   Trophy, 
   DollarSign, 
   Save,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft
 } from "lucide-react";
 import { RecipeFormData } from "../types";
 
-export default function RecipeForm() {
+export default function RecipeForm({ recipeId, onBack }: { recipeId?: string | null, onBack?: () => void }) {
   const [formData, setFormData] = useState<RecipeFormData>({
     title: "",
     ingredients: "",
@@ -26,6 +27,48 @@ export default function RecipeForm() {
     effort_level: "Médio",
     cost: "$$"
   });
+
+  useEffect(() => {
+    // If we are editing a draft, load the mock data
+    if (recipeId === "d1") {
+      setFormData({
+        title: "Pão de Centeio e Mel",
+        ingredients: "- 300g Farinha de Centeio\n- 200g Farinha de Trigo\n- 50g Mel\n- 350ml Água",
+        instructions: "",
+        prep_time: 30,
+        cook_time: 40,
+        yield_quantity: 1,
+        yield_unit: "pão",
+        effort_level: "Médio",
+        cost: "$$"
+      });
+    } else if (recipeId === "d2") {
+      setFormData({
+        title: "Cookie de Chocolate Amargo",
+        ingredients: "- 200g Chocolate Amargo\n- 150g Manteiga\n- 100g Açúcar...\n\n",
+        instructions: "1. Derreta a manteiga com o chocolate...\n2. Misture os ovos e o açúcar...",
+        prep_time: 15,
+        cook_time: 12,
+        yield_quantity: 12,
+        yield_unit: "cookies",
+        effort_level: "Fácil",
+        cost: "$$$"
+      });
+    } else {
+       // reset
+       setFormData({
+         title: "",
+         ingredients: "",
+         instructions: "",
+         prep_time: 0,
+         cook_time: 0,
+         yield_quantity: 1,
+         yield_unit: "porções",
+         effort_level: "Médio",
+         cost: "$$"
+       });
+    }
+  }, [recipeId]);
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -94,9 +137,19 @@ export default function RecipeForm() {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-3xl mx-auto"
     >
-      <div className="mb-8">
-        <h2 className="text-4xl font-light mb-3">Nova Receita</h2>
-        <p className="text-[#5A5A40] italic">Crie o seu próximo clássico. Preencha os detalhes abaixo.</p>
+      <div className="flex items-center gap-4 mb-8">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="w-10 h-10 border border-[#E2D6C0] rounded-full flex items-center justify-center text-[#5A5A40] hover:bg-[#FDFCF8] transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        )}
+        <div>
+          <h2 className="text-4xl font-light mb-1">{recipeId ? "Continuar Preenchimento" : "Nova Receita"}</h2>
+          <p className="text-[#5A5A40] italic">{recipeId ? "Finalize os detalhes do seu rascunho." : "Crie o seu próximo clássico. Preencha os detalhes abaixo."}</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-[32px] shadow-sm border border-[#E2D6C0]">

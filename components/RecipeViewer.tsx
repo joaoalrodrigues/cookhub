@@ -12,7 +12,10 @@ import {
   BookmarkPlus,
   Play,
   Plus,
-  MessageSquareQuote
+  MessageSquareQuote,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { CommunityRecipe } from "../types";
 
@@ -138,6 +141,83 @@ const MOCK_RECIPE_DETAILS = {
         "Deixe crescer na forma untada por cerca de 1 a 2 horas, até dobrar de tamanho.",
         "Pincele com ovo batido e asse a 180°C por 35-45 minutos."
     ]
+  },
+  "c1": {
+    id: "c1",
+    title: "Ciabatta de Longa Fermentação",
+    author: "Ana Silva",
+    total_time: 1200,
+    effort_level: "Desafiador",
+    cost: "$$",
+    yield: "3 filões médios",
+    image_url: "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=1000&auto=format&fit=crop",
+    description: "Um pão italiano super hidratado com alvéolos abertos e crosta crocante. A magia acontece durante o longo tempo de fermentação.",
+    ingredients: [
+      "500g de farinha de trigo de força",
+      "400ml de água fria",
+      "10g de sal",
+      "5g de fermento biológico fresco",
+      "20ml de azeite"
+    ],
+    instructions: [
+      "Misture a farinha e a água (autólise) e deixe descansar por 1 hora.",
+      "Incorpore o sal e o fermento, sovando com cuidado para não perder a textura.",
+      "Deixe a massa fermentar na geladeira por até 18 horas.",
+      "Após a fermentação, modele a ciabatta em pequenos filões, sem apertar a massa.",
+      "Asse em forno alto (240°C) por 25 minutos."
+    ]
+  },
+  "c2": {
+    id: "c2",
+    title: "Muffins de Blueberry",
+    author: "Ricardo M.",
+    total_time: 45,
+    effort_level: "Fácil",
+    cost: "$",
+    yield: "12 unidades",
+    image_url: "https://images.unsplash.com/photo-1607954593931-158a436279f8?w=1000&auto=format&fit=crop",
+    description: "Muffins fofinhos, úmidos e cheios de mirtilos suculentos. O topo ganha uma crosta de açúcar deliciosa.",
+    ingredients: [
+      "2 xícaras de farinha de trigo",
+      "1 xícara de açúcar",
+      "2 colheres (chá) de fermento químico",
+      "1/2 xícara de manteiga derretida",
+      "2 ovos grandes",
+      "1/2 xícara de leite",
+      "1 e 1/2 xícaras de mirtilos"
+    ],
+    instructions: [
+      "Pré-aqueça o forno a 190°C.",
+      "Misture os ingredientes secos em uma tigela grande.",
+      "Em outra tigela, bata a manteiga, os ovos e o leite.",
+      "Junte os ingredientes líquidos aos secos de forma delicada.",
+      "Adicione os mirtilos e mexa bem pouco.",
+      "Asse por cerca de 20-25 minutos até dourar no topo."
+    ]
+  },
+  "c3": {
+    id: "c3",
+    title: "Torta de Maçã Invertida",
+    author: "Clara Luz",
+    total_time: 90,
+    effort_level: "Médio",
+    cost: "$$$",
+    yield: "1 torta grande",
+    image_url: "https://images.unsplash.com/photo-1568571780765-9276ac8b75a2?w=1000&auto=format&fit=crop",
+    description: "Uma versão clássica da famosa torta francesa Tarte Tatin.",
+    ingredients: [
+      "Massa folhada pronta (1 disco)",
+      "4 maçãs descascadas e fatiadas",
+      "100g de manteiga",
+      "150g de açúcar"
+    ],
+    instructions: [
+      "Em uma frigideira que possa ir ao forno, derreta a manteiga com o açúcar até formar um caramelo.",
+      "Adicione as fatias de maçã, reduzindo o fogo para deixá-las cozinhar levemente.",
+      "Cubra a mistura com um disco de massa folhada, apertando suavemente nas bordas.",
+      "Leve ao forno a 200°C por 30 minutos.",
+      "Desenforme a torta quente virando-a de cabeça para baixo num prato."
+    ]
   }
 };
 
@@ -165,6 +245,30 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingNote, setSubmittingNote] = useState(false);
+  const [isKitchenMode, setIsKitchenMode] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const wakeLockRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (isKitchenMode && 'wakeLock' in navigator) {
+      const requestWakeLock = async () => {
+        try {
+          // @ts-ignore
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.error("Wake Lock request failed:", err);
+        }
+      };
+      requestWakeLock();
+    }
+
+    return () => {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    };
+  }, [isKitchenMode]);
 
   React.useEffect(() => {
     async function fetchRecipe() {
@@ -172,23 +276,28 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
         setLoading(true);
         const res = await fetch(`/api/v1/recipes/${recipeId}`);
         if (!res.ok) {
-           // fallback to mock if the real one fails (for compatibility during transition)
-           const mock = (MOCK_RECIPE_DETAILS as any)[recipeId];
-           if (mock) {
-              setRecipe(mock);
-              setLoading(false);
-              return;
-           }
-           throw new Error("Receita não encontrada.");
+           throw new Error("HTTP error " + res.status);
         }
-        const data = await res.json();
+        
+        let data;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+           data = await res.json();
+        } else {
+           throw new Error("Resposta não é JSON");
+        }
+        
         setRecipe(data);
         if (data.notes) {
            setNotes(data.notes);
         }
       } catch (err) {
-        console.error(err);
-        setError("Ocorreu um erro ao buscar a receita.");
+        const mock = (MOCK_RECIPE_DETAILS as any)[recipeId];
+        if (mock) {
+           setRecipe(mock);
+        } else {
+           setError("Receita não encontrada.");
+        }
       } finally {
         setLoading(false);
       }
@@ -210,7 +319,8 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
          })
       });
 
-      if (!response.ok) {
+      const contentType = response.headers.get("content-type");
+      if (!response.ok || !contentType?.includes("application/json")) {
          throw new Error("Falha ao salvar nota.");
       }
 
@@ -311,6 +421,49 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
       <div className="flex flex-col items-center justify-center h-64 text-[#5A5A40] gap-4">
         <p className="font-serif text-xl">{error || "Receita não encontrada."}</p>
         <button onClick={onBack} className="px-6 py-2 border border-[#E2D6C0] rounded-xl text-xs uppercase font-bold tracking-widest hover:bg-[#FDFCF8] transition-colors">Voltar</button>
+      </div>
+    );
+  }
+
+  if (isKitchenMode) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#FDFCF8] text-[#2C2115] flex flex-col items-center justify-center">
+        <div className="absolute top-0 left-0 right-0 p-6 md:p-8 flex justify-between items-center border-b border-[#E2D6C0] z-10 bg-[#FDFCF8]/90 backdrop-blur-sm">
+          <span className="text-sm md:text-xl font-sans opacity-60 tracking-widest uppercase font-bold text-[#5A5A40]">
+            Passo {currentStepIndex + 1} de {recipe.instructions.length}
+          </span>
+          <button 
+            onClick={() => setIsKitchenMode(false)}
+            className="text-[#5A5A40] hover:text-[#2C2115] p-4 transition-colors bg-white/50 hover:bg-white rounded-full border border-transparent hover:border-[#E2D6C0] shadow-sm"
+            title="Sair do Modo Cozinha"
+          >
+            <X size={32} />
+          </button>
+        </div>
+        
+        <div className="flex-1 w-full flex flex-col md:flex-row items-center justify-between p-4 md:p-12 gap-8 overflow-y-auto mt-24 md:mt-0">
+          <button 
+            onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))}
+            disabled={currentStepIndex === 0}
+            className="w-full md:w-48 h-32 md:h-[80vh] flex items-center justify-center bg-white border border-[#E2D6C0] hover:border-[#5A5A40]/40 rounded-3xl disabled:opacity-0 disabled:pointer-events-none transition-colors shrink-0 shadow-sm"
+          >
+            <ChevronLeft size={64} className="opacity-40 text-[#2C2115]" />
+          </button>
+          
+          <div className="flex-1 flex items-center justify-center max-w-5xl mx-auto py-12 px-4 shadow-none">
+            <p className="text-4xl md:text-5xl lg:text-7xl leading-relaxed text-balance text-center font-serif text-[#2C2115]">
+              {recipe.instructions[currentStepIndex]}
+            </p>
+          </div>
+
+          <button 
+            onClick={() => setCurrentStepIndex(Math.min(recipe.instructions.length - 1, currentStepIndex + 1))}
+            disabled={currentStepIndex === recipe.instructions.length - 1}
+            className="w-full md:w-48 h-32 md:h-[80vh] flex items-center justify-center bg-white border border-[#E2D6C0] hover:border-[#5A5A40]/40 rounded-3xl disabled:opacity-0 disabled:pointer-events-none transition-colors shrink-0 shadow-sm"
+          >
+            <ChevronRight size={64} className="opacity-40 text-[#2C2115]" />
+          </button>
+        </div>
       </div>
     );
   }
@@ -462,7 +615,13 @@ export default function RecipeViewer({ recipeId, onBack }: RecipeViewerProps) {
               </ul>
             </div>
             
-            <button className="w-full bg-[#5A5A40] hover:bg-[#4A4A30] text-white py-4 rounded-2xl flex items-center justify-center gap-3 font-sans font-bold uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+            <button 
+              onClick={() => {
+                setCurrentStepIndex(0);
+                setIsKitchenMode(true);
+              }}
+              className="w-full bg-[#5A5A40] hover:bg-[#4A4A30] text-white py-4 rounded-2xl flex items-center justify-center gap-3 font-sans font-bold uppercase tracking-widest transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            >
                <Play size={18} className="fill-current" /> Modo Cozinha
             </button>
           </aside>
